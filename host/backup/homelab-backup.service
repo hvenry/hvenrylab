@@ -1,0 +1,15 @@
+[Unit]
+Description=Back up homelab configuration with restic
+Documentation=file:///home/hvenry/homelab/docs/backup.md
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+Environment=RESTIC_CACHE_DIR=/var/cache/restic
+EnvironmentFile=/etc/homelab-backup.env
+ExecStart=/usr/local/bin/homelab-backup
+# Not urgent: yield CPU and IO to everything else.
+Nice=10
+IOSchedulingClass=idle

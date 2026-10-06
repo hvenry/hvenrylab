@@ -1,0 +1,12 @@
+# Secrets: .env holds tokens and API keys.
+.env
+.env.*
+!.env.example
+
+# Container state, media databases, logs.
+data/
+
+# Homepage writes runtime state into its config dir.
+homepage/logs/
+homepage/*.log
+

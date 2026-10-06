@@ -1,0 +1,186 @@
+/* hvenrylab theme, ported from ~/dev/henry-vendittelli-portfolio:
+   pure black, white, hairlines, sharp corners, Oswald display. See docs/dashboard.md. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@400;500;600&display=swap");
+
+:root {
+  --foreground: 255 255 255;
+  --background: 0 0 0;
+  --muted: 228 228 231;
+  --subtle: 161 161 170;
+  --line: 255 255 255;
+  --line-alpha: 0.15;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+body,
+#page_wrapper,
+#page_container {
+  background: rgb(var(--background)) !important;
+  color: rgb(var(--foreground));
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(var(--foreground));
+  color: rgb(var(--background));
+}
+
+:focus-visible {
+  outline: 1px solid rgb(var(--foreground));
+  outline-offset: 2px;
+}
+
+/* ─── Display type: Oswald, uppercase, tracked ───────────────────────────── */
+
+h1,
+h2,
+.services-group > h2,
+#information-widgets .information-widget-label {
+  font-family: "Oswald", Impact, sans-serif !important;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Group headings: hairline rule beneath, matching the portfolio's section rule */
+.services-group > h2,
+.bookmarks-group > h2 {
+  color: rgb(var(--foreground)) !important;
+  font-size: 0.95rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid rgb(var(--line) / var(--line-alpha));
+}
+
+/* ─── Cards: sharp corners, hairline border, glow on hover ───────────────── */
+
+/* Hairline as inset shadow, not border: a border doubles since .service-card and
+   .service nest. -10px spread: the portfolio's 64px blur washes over dense tiles. */
+.service-card,
+.bookmark-card {
+  background: rgb(var(--background)) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--line) / 0),
+    0 0 20px -10px rgb(var(--foreground) / 0);
+  transition: box-shadow 0.3s ease-in-out;
+  position: relative;
+}
+
+.service-card:hover,
+.bookmark-card:hover {
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--line) / var(--line-alpha)),
+    0 0 20px -10px rgb(var(--foreground) / 0.45);
+}
+
+/* Inner wrappers stay bare so nothing doubles the hairline. */
+.service,
+.bookmark {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+}
+
+/* Gap so the ping badge doesn't sit flush on the edge hairline. */
+.service-card,
+.bookmark-card {
+  padding: 3px;
+}
+
+.service-tag,
+.service-ping {
+  margin: 2px 0;
+}
+
+/* Corner crop marks on hover, the portfolio's .panel-ticks detail */
+.service-card:hover::after,
+.bookmark-card:hover::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  --tick: linear-gradient(rgb(var(--foreground)) 0 100%, rgb(var(--foreground)) 0 100%);
+  background-image: var(--tick), var(--tick), var(--tick), var(--tick),
+    var(--tick), var(--tick), var(--tick), var(--tick);
+  background-repeat: no-repeat;
+  background-size: 7px 1px, 1px 7px, 7px 1px, 1px 7px,
+    7px 1px, 1px 7px, 7px 1px, 1px 7px;
+  background-position: left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom;
+}
+
+/* ─── Text hierarchy ─────────────────────────────────────────────────────── */
+
+.service-title,
+.bookmark-name {
+  color: rgb(var(--foreground)) !important;
+  font-weight: 500;
+}
+
+.service-description,
+.bookmark-description {
+  color: rgb(var(--subtle)) !important;
+}
+
+/* Widget values stay white, labels recede */
+.service-block .font-thin,
+.service-widget .font-thin {
+  color: rgb(var(--subtle)) !important;
+}
+
+/* ─── Flatten Homepage's own theme surfaces ──────────────────────────────── */
+
+.bg-theme-800,
+.bg-theme-900,
+.dark\:bg-theme-800\/50,
+.dark\:bg-theme-900\/50 {
+  background-color: rgb(var(--background)) !important;
+}
+
+/* Resource bars: white on hairline track */
+.resource-usage > div,
+.information-widget-resource .bg-theme-800 {
+  background-color: rgb(var(--foreground) / 0.15) !important;
+}
+
+/* ─── Chrome ─────────────────────────────────────────────────────────────── */
+
+#information-widgets {
+  color: rgb(var(--subtle));
+  border-bottom: 1px solid rgb(var(--line) / var(--line-alpha));
+  padding-bottom: 0.75rem;
+}
+
+#footer {
+  border-top: 1px solid rgb(var(--line) / var(--line-alpha));
+}
+
+/* Dashed rule utility, real dash geometry rather than dotted 1px borders */
+.rule-dashed {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(var(--foreground) / 0.4) 0 8px,
+    transparent 8px 14px
+  );
+}
+
+/* ─── Bookmarks ──────────────────────────────────────────────────────────── */
+
+/* A row of doc links doesn't need the full page width. */
+#bookmarks {
+  max-width: 42rem;
+}
+
+/* Quicklaunch search renders whenever the info row has room; removing `- search:` doesn't stop it. */
+.information-widget-search,
+.information-widget-form {
+  display: none !important;
+}

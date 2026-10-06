@@ -1,0 +1,23 @@
+# Homelab project. Layout: docs/compose-layout.md; build order: docs/rebuild.md.
+# One project, one network: stacks/ is only an editing split.
+# project_directory: . makes ./data/... in stacks/ resolve from the repo root, not stacks/data/.
+name: homelab
+
+include:
+  - path: stacks/media.yaml
+    project_directory: .
+  - path: stacks/platform.yaml
+    project_directory: .
+  - path: stacks/monitoring.yaml
+    project_directory: .
+  - path: stacks/ai.yaml
+    project_directory: .
+  - path: stacks/ootd.yaml
+    project_directory: .
+
+# Pinned: node-exporter binds the bridge gateway 172.28.0.1 and Prometheus scrapes it there.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

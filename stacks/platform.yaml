@@ -1,0 +1,64 @@
+# How everything is reached (Caddy, Homepage) and how it reaches you (ntfy).
+
+services:
+  # One wildcard cert via ACME DNS-01 through Cloudflare; routes by hostname.
+  caddy:
+    # Stock caddy:2 has no Cloudflare DNS module, so it cannot solve DNS-01.
+    image: ghcr.io/caddybuilds/caddy-cloudflare:2.11.4
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      # Tailscale interface only; this bind is what makes everything tailnet-only.
+      # 0.0.0.0 would expose every service to the LAN.
+      - "${TS_IP}:443:443"
+    environment:
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN} # Zone:DNS:Edit on one zone, DNS-01 only
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+
+  # No Docker socket: even :ro it is full daemon control. siteMonitor checks give up/down over HTTP.
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v2.3.0
+    container_name: homepage
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./homepage:/app/config
+      # Only for the resources widget's free-space readout; without it the tile shows "API Error".
+      - ${MEDIA_DIR}:/srv/media:ro
+    environment:
+      # Read at container start, not restart: adding a name means recreating.
+      HOMEPAGE_ALLOWED_HOSTS: lab.${DOMAIN},localhost:3000,127.0.0.1:3000
+      # Substituted into {{HOMEPAGE_VAR_*}} in the yaml, keeping keys out of git.
+      HOMEPAGE_VAR_RADARR_KEY: ${RADARR_API_KEY:-}
+      HOMEPAGE_VAR_SONARR_KEY: ${SONARR_API_KEY:-}
+      HOMEPAGE_VAR_BAZARR_KEY: ${BAZARR_API_KEY:-}
+      HOMEPAGE_VAR_JELLYFIN_KEY: ${JELLYFIN_API_KEY:-}
+
+  # Self-hosted push, so message bodies stay on the tailnet.
+  # UPSTREAM_BASE_URL is required for iOS: only APNs can wake the app, so ntfy.sh
+  # relays a poll request carrying just the message ID and the body is fetched
+  # from here. Without it, a backgrounded iPhone receives nothing.
+  ntfy:
+    image: binwiederhier/ntfy:v2.28.0
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    user: "${PUID}:${PGID}"
+    ports:
+      - "127.0.0.1:8082:80"
+    environment:
+      TZ: ${TZ}
+      NTFY_BASE_URL: https://ntfy.${DOMAIN}
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_CACHE_DURATION: "72h"
+      NTFY_ATTACHMENT_CACHE_DIR: /var/cache/ntfy/attachments
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+    volumes:
+      - ./data/ntfy/cache:/var/cache/ntfy
+      - ./data/ntfy/lib:/var/lib/ntfy

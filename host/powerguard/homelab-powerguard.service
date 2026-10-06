@@ -1,0 +1,14 @@
+[Unit]
+Description=Shut the homelab down cleanly when the battery runs low
+Documentation=file:///home/hvenry/homelab/docs/powerguard.md
+# Don't fight a manual shutdown.
+Conflicts=shutdown.target
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/homelab-powerguard
+# Thresholds here, not in the script: a change is one edit.
+Environment=POWERGUARD_THRESHOLD=15
+Environment=POWERGUARD_WARN_AT=40
+Environment=POWERGUARD_PROJECT_DIR=/home/hvenry/homelab

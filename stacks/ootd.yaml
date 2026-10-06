@@ -1,0 +1,131 @@
+# ootd: closet catalogue; the worker cuts garments out with BiRefNet on the GPU. See docs/ootd.md.
+# Local build, no published image. Rig measurements compile into the client
+# bundle from ~/dev/ootd/.env, so a re-measured rig means a rebuild:
+#   cd ~/dev/ootd && OOTD_TAG=0.1.0 docker compose \
+#     -f docker-compose.yml -f docker-compose.gpu.yml build app worker
+# then set OOTD_TAG in .env here.
+
+services:
+  ootd-db:
+    image: postgres:17.11-alpine
+    container_name: ootd-db
+    restart: unless-stopped
+    # Postgres refuses a data dir owned by anyone but its runtime user.
+    user: "${PUID}:${PGID}"
+    environment:
+      TZ: ${TZ}
+      POSTGRES_USER: ootd
+      POSTGRES_PASSWORD: ${OOTD_DB_PASSWORD:?set OOTD_DB_PASSWORD in .env}
+      POSTGRES_DB: ootd
+    volumes:
+      # Excluded from backup: a running cluster's files aren't consistent. Backup pg_dumps to data/ootd/db.sql.
+      - ./data/ootd/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ootd -d ootd"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Applies pending migrations on start, then serves.
+  ootd:
+    image: ootd:${OOTD_TAG:?set OOTD_TAG in .env}
+    container_name: ootd
+    restart: unless-stopped
+    # Image's 'app' user can't write data/ootd/storage.
+    user: "${PUID}:${PGID}"
+    depends_on:
+      ootd-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3003:3000"
+    environment:
+      TZ: ${TZ}
+      DATABASE_URL: postgres://ootd:${OOTD_DB_PASSWORD}@ootd-db:5432/ootd
+      STORAGE_ROOT: /storage
+      CUTOUT_PROVIDER: local
+      WORKER_URL: http://ootd-worker:8000
+    volumes:
+      # Originals kept forever so the closet can be re-cut with a better model. The part worth backing up.
+      - ./data/ootd/storage:/storage
+
+  # Dev mode: `next dev` off ~/dev/ootd, live without a rebuild. Caddy points here
+  # while iterating; point it back at ootd:3000 and `docker start ootd` for the image.
+  # node_modules (musl) and the pnpm store live in the checkout, so a recreate
+  # reinstalls from disk. No migrations on start: `pnpm db:migrate` in here.
+  ootd-dev:
+    image: node:24-alpine
+    container_name: ootd-dev
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    depends_on:
+      ootd-db:
+        condition: service_healthy
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - corepack pnpm install --frozen-lockfile && exec corepack pnpm dev -H 0.0.0.0 -p 3000
+    ports:
+      - "127.0.0.1:3004:3000"
+    environment:
+      TZ: ${TZ}
+      # Overrides the checkout's .env, which points at a Mac's localhost.
+      DATABASE_URL: postgres://ootd:${OOTD_DB_PASSWORD}@ootd-db:5432/ootd
+      STORAGE_ROOT: /storage
+      CUTOUT_PROVIDER: local
+      WORKER_URL: http://ootd-worker:8000
+      HOME: /tmp
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      npm_config_store_dir: /app/node_modules/.pnpm-store
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ${OOTD_SRC:-/home/hvenry/dev/ootd}:/app
+      - ./data/ootd/storage:/storage
+
+  # Polls the job table, runs cuts. BiRefNet fp16: ~0.5GB weights, ~2GB peak per 1024x1024 cut.
+  ootd-worker:
+    image: ootd-worker:${OOTD_TAG:?set OOTD_TAG in .env}
+    container_name: ootd-worker
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    depends_on:
+      ootd-db:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ}
+      DATABASE_URL: postgres://ootd:${OOTD_DB_PASSWORD}@ootd-db:5432/ootd
+      STORAGE_ROOT: /storage
+      CUTOUT_PROVIDER: local
+      # Required, not auto: a missing GPU (driver upgraded, no reboot) would
+      # silently turn sub-second cuts into 35s CPU ones. cuda fails loudly.
+      CUTOUT_DEVICE: cuda
+      # Shared GPU: don't hold VRAM for a closet shot a few times a week. Reload takes seconds.
+      MODEL_KEEP_ALIVE_SECONDS: "300"
+      HF_HOME: /hf-cache
+      # No passwd entry for PUID: HOME=/ is unwritable, and torch's getpass
+      # raises "uid not found: 1001" on the first cut without USER.
+      HOME: /tmp
+      USER: ootd
+    volumes:
+      - ./data/ootd/storage:/storage
+      - ./data/ootd/hf-cache:/hf-cache # BiRefNet weights, re-downloadable, not backed up
+      # Dev mode: worker Python from the checkout over the image's copy; a code
+      # change is `docker restart ootd-worker`. Deps (torch) still need a rebuild.
+      # Drop this line to run exactly what the image was built with.
+      - ${OOTD_SRC:-/home/hvenry/dev/ootd}/worker/worker:/app/worker:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

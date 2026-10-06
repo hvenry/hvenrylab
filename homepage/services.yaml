@@ -1,0 +1,86 @@
+# href: public URL the browser opens. siteMonitor: internal container address, so
+# status is right from any device.
+
+- Watch:
+    - Jellyfin:
+        icon: jellyfin.png
+        href: https://jellyfin.hvenry.com
+        siteMonitor: http://jellyfin:8096
+        description: Media server
+        # No widget: Homepage v2.3.0 calls /emby/...?api_key=; Jellyfin 12 dropped both. Blocked upstream.
+
+- Library:
+    - Radarr:
+        icon: radarr.png
+        href: https://radarr.hvenry.com
+        siteMonitor: http://radarr:7878
+        description: Films
+        widget:
+          type: radarr
+          url: http://radarr:7878
+          fields: ["movies"]
+          key: {{HOMEPAGE_VAR_RADARR_KEY}}
+
+    - Sonarr:
+        icon: sonarr.png
+        href: https://sonarr.hvenry.com
+        siteMonitor: http://sonarr:8989
+        description: TV
+        widget:
+          type: sonarr
+          url: http://sonarr:8989
+          fields: ["series"]
+          key: {{HOMEPAGE_VAR_SONARR_KEY}}
+
+    - Bazarr:
+        icon: bazarr.png
+        href: https://bazarr.hvenry.com
+        siteMonitor: http://bazarr:6767
+        description: Subtitles
+
+- Apps:
+    - ootd:
+        icon: mdi-hanger
+        href: https://ootd.hvenry.com
+        siteMonitor: http://ootd-dev:3000 # the dev server serves the site; the built image is stopped
+        description: Closet catalogue, BiRefNet cutouts on the GPU
+
+- Monitoring:
+    - Grafana:
+        icon: grafana.png
+        href: https://grafana.hvenry.com
+        siteMonitor: http://grafana:3000
+        description: Host metrics and dashboards
+
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: https://uptime.hvenry.com
+        siteMonitor: http://uptime-kuma:3001
+        description: Service checks with history and alerting
+
+    - clear-rag:
+        icon: mdi-book-search-outline
+        href: https://rag.hvenry.com
+        siteMonitor: http://clear-rag:8010/api/config
+        description: Ask questions about this homelab's own docs
+
+    - ntfy:
+        icon: ntfy.png
+        href: https://ntfy.hvenry.com
+        siteMonitor: http://ntfy:80/v1/health
+        description: Push notifications for the stack
+
+    - Prometheus:
+        icon: prometheus.png
+        href: https://prometheus.hvenry.com
+        siteMonitor: http://prometheus:9090
+        description: Metrics store, 90 day retention
+        widget:
+          type: prometheus
+          url: http://prometheus:9090
+
+    - Glances:
+        icon: glances.png
+        href: https://glances.hvenry.com
+        siteMonitor: http://glances:61208/api/4/status
+        description: Live host stats, per-core and sensors

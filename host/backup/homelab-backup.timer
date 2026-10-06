@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily homelab configuration backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# Catch up on next boot if asleep at 03:30, instead of silently skipping the day.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

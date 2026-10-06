@@ -1,0 +1,88 @@
+# Every tailnet service gets a name under hvenry.com. See docs/ingress.md.
+# TLS here, not Tailscale Serve: one wildcard cert via DNS-01 (Cloudflare TXT
+# record), so nothing is publicly reachable. Caddy binds the Tailscale IP only,
+# so these names resolve publicly but answer only on the tailnet.
+
+{
+	email hvendittelli@gmail.com
+}
+
+*.hvenry.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1
+	}
+
+	# --- Watch ---------------------------------------------------------------
+	@jellyfin host jellyfin.hvenry.com
+	handle @jellyfin {
+		reverse_proxy jellyfin:8096
+	}
+
+	# --- Library -------------------------------------------------------------
+	@radarr host radarr.hvenry.com
+	handle @radarr {
+		reverse_proxy radarr:7878
+	}
+
+	@sonarr host sonarr.hvenry.com
+	handle @sonarr {
+		reverse_proxy sonarr:8989
+	}
+
+	@bazarr host bazarr.hvenry.com
+	handle @bazarr {
+		reverse_proxy bazarr:6767
+	}
+
+	# --- Platform ------------------------------------------------------------
+	@homepage host lab.hvenry.com
+	handle @homepage {
+		reverse_proxy homepage:3000
+	}
+
+	# --- Monitoring ----------------------------------------------------------
+	@ntfy host ntfy.hvenry.com
+	handle @ntfy {
+		reverse_proxy ntfy:80
+	}
+
+	# --- AI -------------------------------------------------------------------
+	# No auth: clear-rag has none, and basic_auth here would put it in the wrong
+	# place. Tailscale is the boundary until the app grows its own.
+	@rag host rag.hvenry.com
+	handle @rag {
+		reverse_proxy clear-rag:8010
+	}
+
+	# --- Apps -----------------------------------------------------------------
+	# No auth yet, Tailscale is the boundary. ootd-dev while iterating; ootd:3000 serves the built image.
+	@ootd host ootd.hvenry.com
+	handle @ootd {
+		reverse_proxy ootd-dev:3000
+	}
+
+	@grafana host grafana.hvenry.com
+	handle @grafana {
+		reverse_proxy grafana:3000
+	}
+
+	@uptime host uptime.hvenry.com
+	handle @uptime {
+		reverse_proxy uptime-kuma:3001
+	}
+
+	@prometheus host prometheus.hvenry.com
+	handle @prometheus {
+		reverse_proxy prometheus:9090
+	}
+
+	@glances host glances.hvenry.com
+	handle @glances {
+		reverse_proxy glances:61208
+	}
+
+	handle {
+		respond "No service at this name." 404
+	}
+}

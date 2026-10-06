@@ -1,0 +1,16 @@
+- Docs:
+    - Jellyfin:
+        - abbr: JF
+          href: https://jellyfin.org/docs
+    - Servarr wiki:
+        - abbr: AR
+          href: https://wiki.servarr.com
+    - Tailscale:
+        - abbr: TS
+          href: https://login.tailscale.com/admin/machines
+    - This repo:
+        - abbr: GH
+          href: https://github.com/hvenry/hvenrylab
+    - Cloudflare DNS:
+        - abbr: CF
+          href: https://dash.cloudflare.com

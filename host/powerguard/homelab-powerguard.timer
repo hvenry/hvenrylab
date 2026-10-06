@@ -1,0 +1,12 @@
+[Unit]
+Description=Check battery state for the homelab power guard
+
+[Timer]
+# 1 min is well inside the margin: 15% battery is far more than a minute; the check is two sysfs reads.
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=homelab-powerguard.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+# One readout per metric. No glances info widget: it hardcodes a second memory block.
+# Glances has its own tile; temperature history belongs in Grafana.
+
+- resources:
+    cpu: true
+    memory: true
+    # Arch SSD (stack) and 990 PRO (library). /srv/backup is a sibling subvolume
+    # of /srv/media, so listing it would repeat the same numbers.
+    disk:
+      - /
+      - /srv/media
+    uptime: true

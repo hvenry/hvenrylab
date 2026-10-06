@@ -1,0 +1,22 @@
+title: hvenrylab
+description: Self-hosted media stack
+startUrl: https://lab.hvenry.com
+
+theme: dark
+color: neutral # closest to pure black; custom.css takes it the rest of the way
+headerStyle: clean
+cardBlur: "" # sharp and flat, matching the portfolio
+hideVersion: true
+disableCollapse: false
+showStats: true
+
+layout:
+  Watch:
+    style: rows
+    columns: 2
+  Library:
+    style: rows
+    columns: 3
+  Monitoring:
+    style: rows
+    columns: 3

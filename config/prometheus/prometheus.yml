@@ -1,0 +1,17 @@
+# Host metrics only. No cAdvisor: it needs the Docker socket, which this stack avoids.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      # Not node-exporter:9100: host networking (so metrics describe the machine) means
+      # no compose-network address. 172.28.0.1 = bridge gateway of the subnet pinned in compose.yaml.
+      - targets: ["172.28.0.1:9100"]
+        labels:
+          instance: hvenrylab
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

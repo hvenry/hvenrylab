@@ -1,0 +1,103 @@
+# No container here touches the Docker socket, so there are no per-container
+# metrics: node-exporter reports the machine, Uptime Kuma checks over HTTP.
+
+services:
+  # Live host stats. pid: host to see host processes; no socket, so no containers.
+  glances:
+    image: nicolargo/glances:4.5.6-full
+    container_name: glances
+    restart: unless-stopped
+    pid: host
+    environment:
+      TZ: ${TZ}
+      GLANCES_OPT: -w
+    volumes:
+      - /:/rootfs:ro
+    ports:
+      - "127.0.0.1:61208:61208"
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.10.1
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    # Host networking is the only way to get real network metrics: /proc/net is
+    # per-namespace, so on the bridge it reported Docker bridge traffic and the
+    # host's WiFi appeared nowhere. --path.procfs can't fix it (/proc/self).
+    network_mode: host
+    command:
+      - --path.rootfs=/host
+      # Bridge gateway, not 0.0.0.0: on host networking that would publish metrics to the LAN.
+      - --web.listen-address=172.28.0.1:9100
+      # No --collector.systemd: it needs the host dbus socket at a path
+      # --path.rootfs doesn't redirect, so it failed every scrape.
+    volumes:
+      - /:/host:ro,rslave
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    container_name: prometheus
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=90d
+      - --web.enable-lifecycle
+    volumes:
+      - ./config/prometheus:/etc/prometheus:ro
+      - ./data/prometheus:/prometheus
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    container_name: grafana
+    restart: unless-stopped
+    user: "${PUID}:${PGID}"
+    depends_on:
+      - prometheus
+    environment:
+      TZ: ${TZ}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD in .env}
+      GF_SERVER_ROOT_URL: https://grafana.${DOMAIN}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      # Provisioned from files, so dashboards are versioned, not only in Grafana's DB.
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./data/grafana:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.16
+    container_name: uptime-kuma
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./data/uptime-kuma:/app/data
+    ports:
+      - "127.0.0.1:3002:3001"
+
+  # Notifies on new tags via ntfy; never updates (pinning keeps updates deliberate).
+  # Static file list instead of socket discovery.
+  diun:
+    image: crazymax/diun:4.30.0
+    container_name: diun
+    restart: unless-stopped
+    command: serve
+    environment:
+      TZ: ${TZ}
+      LOG_LEVEL: info
+      DIUN_WATCH_SCHEDULE: "0 6 * * *"
+      DIUN_WATCH_FIRSTCHECKNOTIF: "false"
+      DIUN_PROVIDERS_FILE_FILENAME: /etc/diun/images.yml
+      DIUN_NOTIF_NTFY_ENDPOINT: http://ntfy:80 # container to container, not out through Caddy
+      DIUN_NOTIF_NTFY_TOPIC: ${NTFY_TOPIC}
+      DIUN_NOTIF_NTFY_PRIORITY: "3"
+    volumes:
+      - ./config/diun:/etc/diun:ro
+      - ./data/diun:/data
