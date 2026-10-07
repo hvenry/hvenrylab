@@ -12,6 +12,18 @@
   --line-alpha: 0.15;
 }
 
+/* Light: the portfolio's [data-theme="light"] tokens. Homepage marks the theme
+   with a class on <html>, toggled from custom.js. Darker hairlines stay legible on white. */
+html.light {
+  --foreground: 9 9 11;
+  --background: 255 255 255;
+  --muted: 18 18 21;
+  --subtle: 39 39 42;
+  --line: 9 9 11;
+  --line-alpha: 0.35;
+  color-scheme: light;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 
 body,
@@ -136,6 +148,11 @@ h2,
   color: rgb(var(--subtle)) !important;
 }
 
+/* Homepage tints light-mode stat blocks slate blue; keep them neutral like the rest. */
+html.light .service-block {
+  background-color: rgb(var(--foreground) / 0.04) !important;
+}
+
 /* ─── Flatten Homepage's own theme surfaces ──────────────────────────────── */
 
 .bg-theme-800,
@@ -179,8 +196,45 @@ h2,
   max-width: 42rem;
 }
 
+/* Homepage's shadow-md is invisible on black but a drop shadow on white; flat in both,
+   with light rows getting the faint fill dark rows already have. */
+#bookmarks a.shadow-md {
+  box-shadow: none !important;
+}
+
+html.light #bookmarks a.shadow-md {
+  background-color: rgb(var(--foreground) / 0.04) !important;
+}
+
 /* Quicklaunch search renders whenever the info row has room; removing `- search:` doesn't stop it. */
 .information-widget-search,
 .information-widget-form {
   display: none !important;
+}
+
+/* ─── Theme toggle ───────────────────────────────────────────────────────── */
+
+/* Homepage's footer toggle stays in the DOM (custom.js clicks it) but out of sight. */
+#footer #theme {
+  display: none !important;
+}
+
+/* Borderless icon: subtle at rest, foreground on hover, like clear-rag's header controls. */
+#theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin-left: auto;
+  padding: 0.375rem;
+  color: rgb(var(--subtle));
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+#theme-toggle:hover {
+  color: rgb(var(--foreground));
 }

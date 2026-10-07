@@ -2,7 +2,7 @@ title: hvenrylab
 description: Self-hosted media stack
 startUrl: https://lab.hvenry.com
 
-theme: dark
+# No `theme:` key: setting one locks the theme and removes the toggle. Homepage falls back to dark.
 color: neutral # closest to pure black; custom.css takes it the rest of the way
 headerStyle: clean
 cardBlur: "" # sharp and flat, matching the portfolio
